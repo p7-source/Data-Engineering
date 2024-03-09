@@ -1,0 +1,46 @@
+import pyspark.sql.functions as F
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType 
+
+# Define connection string for IoT Hub
+IOT_CS = "......."
+
+# Define event hubs configuration
+ehConf = {
+    'eventhubs.connectionString': spark._jvm.org.apache.spark.eventhubs.EventHubsUtils.credentialsString(IOT_CS),
+    'eventhubs.consumerGroup': '$Default'
+}
+
+# Define JSON schema for IoT data
+json_schema = StructType([
+    StructField("DeviceID", IntegerType(), True), 
+    StructField("DeviceNumber", IntegerType(), True),
+    StructField("Temperature", StringType(), True),
+    StructField("Humidity", StringType(), True),
+    StructField("Pressure", StringType(), True),
+    StructField("Location", StringType(), True),
+    StructField("Status", StringType(), True)
+])
+
+# Enable auto compaction and optimized writes in Delta
+spark.conf.set("spark.databricks.delta.optimizeWrite.enabled", "true")
+spark.conf.set("spark.databricks.delta.autoCompact.enabled", "true")
+
+# Define the streaming DataFrame reading from event hubs
+eventhub_stream = (
+    spark.readStream.format("eventhubs")
+    .options(**ehConf)
+    .load()
+    .withColumn('body', F.from_json(F.col('body').cast('string'), json_schema))
+    .select(
+        F.col("body.DeviceID").alias("DeviceID"), 
+        F.col("body.DeviceNumber").alias("DeviceNumber"),
+        F.col("body.Temperature").alias("Temperature"),
+        F.col("body.Humidity").alias("Humidity"),
+        F.col("body.Pressure").alias("Pressure"),
+        F.col("body.Location").alias("Location"),
+        F.col("body.Status").alias("Status")
+    )
+)
+
+# Display the streaming DataFrame
+display(eventhub_stream)
