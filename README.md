@@ -1,5 +1,5 @@
 # Data-Engineering
-Azure, Aws, PySpark
+Azure, Databricks
 
 # Azure IoT Hub Data Generator
 
